@@ -1,0 +1,102 @@
+﻿@page "/counter"
+
+
+@using Syncfusion.Blazor.Buttons
+@using Syncfusion.Blazor.DropDowns
+@using Syncfusion.Blazor.Grids
+
+<SfGrid @ref="Grid" DataSource="@Orders" AllowPaging="true" Toolbar="@(new List<string>() { "Add", "Delete", "Update", "Cancel" })" Height="315">
+    <GridEditSettings AllowAdding="true" AllowEditing="true" AllowDeleting="true" Mode="EditMode.Batch"></GridEditSettings>
+    <GridEvents OnCellSave="CellSavedHandler" OnCellEdit="CellEditHandler" TValue="Order"></GridEvents>
+    <GridColumns>
+        <GridColumn Field=@nameof(Order.OrderID) HeaderText="Order ID" IsPrimaryKey="true" TextAlign="TextAlign.Right" ValidationRules="@(new ValidationRules { Required = true })" Type="ColumnType.Number" Width="120"></GridColumn>
+        <GridColumn Field=@nameof(Order.CustomerID) HeaderText="Customer Name" ValidationRules="@(new ValidationRules{ Required=true})" Width="120"></GridColumn>
+        <GridColumn Field=@nameof(Order.OrderDate) HeaderText=" Order Date" EditType="EditType.DatePickerEdit" Format="d" TextAlign="TextAlign.Right" Width="130" Type="ColumnType.Date"></GridColumn>
+        <GridColumn Field=@nameof(Order.Quantity) HeaderText="Quantity" EditType="EditType.DropDownEdit" TextAlign="TextAlign.Right" Width="120">
+            <EditTemplate>
+                <SfDropDownList @ref="Dropdown" ID="Quantity" TValue="int?" TItem="Games" @bind-Value="@((context as Order).Quantity)" Placeholder="Select Quantity" DataSource="@LocalData">
+                    <DropDownListFieldSettings Value="ID" Text="ID"></DropDownListFieldSettings>
+                    <DropDownListEvents Created="Created" TValue="int?" TItem="Games" ValueChange="OnValueChangeForCol6" />
+                </SfDropDownList>
+            </EditTemplate>
+        </GridColumn>
+        <GridColumn Field=@nameof(Order.ShipCountry) HeaderText="Ship Country" EditType="EditType.DropDownEdit" Width="150"></GridColumn>
+    </GridColumns>
+</SfGrid>
+
+@code{
+    SfGrid<Order> Grid;
+    SfDropDownList<int?, Games> Dropdown;
+    public List<Order> Orders { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Orders = Enumerable.Range(1, 10).Select(x => new Order()
+        {
+            OrderID = 1000 + x,
+            CustomerID = (new string[] { "ALFKI", "ANANTR", "ANTON", "BLONP", "BOLID" })[new Random().Next(5)],
+            Verified = (new bool[] { true, false })[new Random().Next(2)],
+            Quantity = x,
+            UnitPrice = 2 * x,
+            OrderDate = DateTime.Now.AddDays(-x),
+            ShipCountry = (new string[] { "USA", "UK", "CHINA", "RUSSIA", "INDIA" })[new Random().Next(5)]
+        }).ToList();
+    }
+
+    public class Order
+    {
+        public int? OrderID { get; set; }
+        public string CustomerID { get; set; }
+        public DateTime? OrderDate { get; set; }
+        public int? Quantity { get; set; }
+        public double? UnitPrice { get; set; }
+        public double? Amount { get; set; }
+        public double? Sum { get; set; }
+        public int? VAT { get; set; }
+        public string ShipCountry { get; set; }
+        public bool Verified { get; set; }
+    }
+
+    public class Games
+    {
+        public int ID { get; set; }
+        public string Text { get; set; }
+    }
+    List<Games> LocalData = new List<Games> {
+    new Games() { ID= 1, Text= "American Football" },
+    new Games() { ID= 2, Text= "Badminton" },
+    new Games() { ID= 3, Text= "Basketball" },
+    new Games() { ID= 4, Text= "Cricket" },
+    new Games() { ID= 5, Text= "Football" },
+    new Games() { ID= 6, Text= "Golf" },
+    new Games() { ID= 7, Text= "Hockey" },
+    new Games() { ID= 8, Text= "Rugby"},
+    new Games() { ID= 9, Text= "Snooker" },
+    new Games() { ID= 10, Text= "Tennis"},
+  };
+
+    public double IndexValue { get; set; }
+    public void CellSavedHandler(CellSaveArgs<Order> args)
+    {
+        if (args.ColumnName == "Quantity")
+        {
+            args.Value = Dropdown.Value;
+        }
+    }
+
+    public void Created()
+    {
+        Grid.PreventRender(false);
+    }
+
+    public async Task CellEditHandler(CellEditArgs<Order> args)
+    {
+        IndexValue = await Grid.GetRowIndexByPrimaryKey(args.RowData.OrderID);
+    }
+
+    private async Task OnValueChangeForCol6(Syncfusion.Blazor.DropDowns.ChangeEventArgs<int?, Games> args)
+    {
+        var Value = (new string[] { "USA", "UK", "CHINA", "RUSSIA", "INDIA" })[new Random().Next(5)];
+        await Grid.UpdateCell(IndexValue, "ShipCountry", Value);
+    }
+}
